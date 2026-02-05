@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snake Game ALADIN</title>
+    <style>
+        body { 
+            background: #000; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: flex-start; 
+            height: 100vh; 
+            margin: 0; 
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas { 
+            background: #111; 
+            margin-top: 20px;
+        }
+
+        /* D-pad carré en bas */
+        .controls {
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px;
+            gap: 10px;
+            position: fixed;
+            bottom: 100px; /* distance du bas */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .controls button {
+            font-size: 24px;
+            padding: 10px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .up { grid-column: 2; grid-row: 1; }
+        .left { grid-column: 1; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 3; }
+        .rightDir { grid-column: 3; grid-row: 2; }
+
+        /* Cercles de vitesse en bas, sous le D-pad */
+        .speed-controls {
+            display: flex;
+            justify-content: center;
+            gap: 50px; /* plus grand espacement */
+            position: fixed;
+            bottom: 10px; /* sous le D-pad */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .speed-controls button {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            border: none;
+            transition: transform 0.2s; /* effet grandir */
+        }
+        .speed-controls button.active {
+            transform: scale(1.5); /* grandir quand sélectionné */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <!-- D-pad carré -->
+    <div class="controls">
+        <button id="up" class="up">↑</button>
+        <button id="left" class="left">←</button>
+        <button id="down" class="down">↓</button>
+        <button id="rightDir" class="rightDir">→</button>
+    </div>
+
+    <!-- Cercles de vitesse -->
+    <div class="speed-controls">
+        <button id="slow" style="background-color: yellow;"></button>
+        <button id="normal" style="background-color: green;"></button>
+        <button id="fast" style="background-color: red;"></button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const grid = 20;
+        let count = 0;
+        let speed = 4;
+        let snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4 };
+        const letters = ['A','L','A','D','I','N'];
+        let letterIndex = 0;
+        let apple = { x: 320, y: 320, char: letters[letterIndex] };
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+
+            if (++count < speed) return;
+            count = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            snake.x += snake.dx;
+            snake.y += snake.dy;
+
+            if (snake.x < 0) snake.x = canvas.width - grid;
+            if (snake.x >= canvas.width) snake.x = 0;
+            if (snake.y < 0) snake.y = canvas.height - grid;
+            if (snake.y >= canvas.height) snake.y = 0;
+
+            snake.cells.unshift({ x: snake.x, y: snake.y });
+            if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+            ctx.fillStyle = 'yellow';
+            ctx.font = "20px Arial";
+            ctx.fillText(apple.char, apple.x + 2, apple.y + 16);
+
+            ctx.fillStyle = 'lime';
+            snake.cells.forEach((cell, index) => {
+                ctx.fillRect(cell.x, cell.y, grid-1, grid-1);
+
+                if (cell.x === apple.x && cell.y === apple.y) {
+                    snake.maxCells++;
+                    letterIndex = (letterIndex + 1) % letters.length;
+                    apple.char = letters[letterIndex];
+                    apple.x = getRandomInt(0, 20) * grid;
+                    apple.y = getRandomInt(0, 20) * grid;
+                }
+
+                for (let i = index + 1; i < snake.cells.length; i++) {
+                    if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                        snake.x = 160;
+                        snake.y = 160;
+                        snake.cells = [];
+                        snake.maxCells = 4;
+                        snake.dx = grid;
+                        snake.dy = 0;
+                        letterIndex = 0;
+                        apple.char = letters[letterIndex];
+                        apple.x = getRandomInt(0, 20) * grid;
+                        apple.y = getRandomInt(0, 20) * grid;
+                    }
+                }
+            });
+        }
+
+        // Flèches directionnelles
+        document.getElementById('up').addEventListener('click', () => { if(snake.dy===0){snake.dx=0; snake.dy=-grid;} });
+        document.getElementById('down').addEventListener('click', () => { if(snake.dy===0){snake.dx=0; snake.dy=grid;} });
+        document.getElementById('left').addEventListener('click', () => { if(snake.dx===0){snake.dx=-grid; snake.dy=0;} });
+        document.getElementById('rightDir').addEventListener('click', () => { if(snake.dx===0){snake.dx=grid; snake.dy=0;} });
+
+        // Cercles de vitesse avec effet grandir
+        const speedButtons = document.querySelectorAll('.speed-controls button');
+        speedButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                speedButtons.forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+            });
+        });
+
+        document.getElementById('slow').addEventListener('click', () => { speed = 6; });
+        document.getElementById('normal').addEventListener('click', () => { speed = 4; });
+        document.getElementById('fast').addEventListener('click', () => { speed = 2; });
+
+        // Clavier optionnel
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' && snake.dx === 0) { snake.dx = -grid; snake.dy = 0; }
+            if (e.key === 'ArrowRight' && snake.dx === 0) { snake.dx = grid; snake.dy = 0; }
+            if (e.key === 'ArrowUp' && snake.dy === 0) { snake.dx = 0; snake.dy = -grid; }
+            if (e.key === 'ArrowDown' && snake.dy === 0) { snake.dx = 0; snake.dy = grid; }
+        });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
